@@ -64,7 +64,6 @@ public class StudentGoodHash {
      * false otherwise
      */
     public boolean equals(Object other) {
-        // change to StudentMediumHash and StudentGoodHash for two new classes
         if (!(other instanceof StudentGoodHash))
             return false;
 

@@ -13,7 +13,7 @@ public class MapEntry<K, V> {
 	/**
 	 * Creates a new MapEntry with the specified key and value.
 	 * 
-	 * @param key - the key portion of the new map entry
+	 * @param key   - the key portion of the new map entry
 	 * @param value - the value portion of the new map entry
 	 */
 	public MapEntry(K key, V value) {
@@ -38,7 +38,7 @@ public class MapEntry<K, V> {
 	public V getValue() {
 		return this.value;
 	}
-	
+
 	/**
 	 * Resets the value portion of this MapEntry.
 	 * 
@@ -47,25 +47,25 @@ public class MapEntry<K, V> {
 	public void setValue(V value) {
 		this.value = value;
 	}
-	
+
 	/**
-	 * Overrides Objects's equals method to leverage the equals methods of the 
-	 * key and value members.
+	 * Overrides Objects's equals method to leverage the equals methods of the key
+	 * and value members.
 	 * 
 	 * @param other - the object to compare this MapEntry with
 	 * @return true if the objects are equal, false otherwise
 	 */
 	public boolean equals(Object other) {
-		if(!(other instanceof MapEntry<?, ?>))
+		if (!(other instanceof MapEntry<?, ?>))
 			return false;
-		
-		MapEntry<?, ?> rhs = (MapEntry<?, ?>)other;
-		
+
+		MapEntry<?, ?> rhs = (MapEntry<?, ?>) other;
+
 		return key.equals(rhs.key) && value.equals(rhs.value);
 	}
-	
+
 	/**
-	 * Overrides Object's toString method to leverage the toString methods of the 
+	 * Overrides Object's toString method to leverage the toString methods of the
 	 * key and value members.
 	 * 
 	 * @return a textual representation of this MapEntry; i.e., (key, value) pair
