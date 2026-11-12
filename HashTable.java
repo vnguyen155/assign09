@@ -1,6 +1,8 @@
 package assign09;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Represents a hash table with collisions resolved using quadratic probing.
@@ -14,6 +16,17 @@ public class HashTable<K, V> implements Map<K, V> {
     private boolean[] deleted;
     private int size;
     private double maxLoadFactor;
+
+    /**
+     * Casts the item at the given index of the backing array to a MapEntry.
+     *
+     * @param index - the index of the item to retrieve
+     * @return the MapEntry at the given index, or null if the cell is empty
+     */
+    @SuppressWarnings("unchecked")
+    private MapEntry<K, V> entryAt(int index) {
+        return (MapEntry<K, V>) table[index];
+    }
 
     /**
      * Creates an empty hash table with the specified maximum load factor and an
@@ -73,7 +86,16 @@ public class HashTable<K, V> implements Map<K, V> {
      * false otherwise
      */
     public boolean containsValue(V value) {
-		
+        // Values are not hashed, so check every cell
+        for (int i = 0; i < table.length; i++) {
+            MapEntry<K, V> entry = entryAt(i);
+
+            // Skip empty and deleted cells. Compare values null-safely
+            if (entry != null && !deleted[i] && Objects.equals(entry.getValue(), value)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -85,7 +107,14 @@ public class HashTable<K, V> implements Map<K, V> {
      * @return a List object containing all mapping (i.e., entries) in this map
      */
     public List<MapEntry<K, V>> entries() {
-
+        List<MapEntry<K, V>> list = new ArrayList<>();
+        for (int i = 0; i < table.length; i++) {
+            MapEntry<K, V> entry = entryAt(i);
+            if (entry != null && !deleted[i]) {
+                list.add(entry);
+            }
+        }
+        return list;
     }
 
     /**
@@ -98,7 +127,11 @@ public class HashTable<K, V> implements Map<K, V> {
      * contains no mapping for the key
      */
     public V get(K key) {
-
+        int index = findIndex(key);
+        if (index == -1) {
+            return null;
+        }
+        return entryAt(index).getValue();
     }
 
     /**
@@ -126,7 +159,37 @@ public class HashTable<K, V> implements Map<K, V> {
      * mapping for key
      */
     public V put(K key, V value) {
+        capacity();
 
+        int h = Math.floorMod(key.hashCode(), table.length);
+        int firstAvailable = -1;
+
+        for (int i = 0; i < table.length; i++){
+            int index = (h + i * i) % table.length;
+            MapEntry<K, V> entry = entryAt(index);
+
+            if (entry == null || deleted[index]) {
+                if (firstAvailable == -1) {
+                    firstAvailable = index;
+                }
+                if (entry == null) {
+                    break;
+                }
+            }
+            else if (key.equals(entry.getKey())) {
+                V oldValue = entry.getValue();
+                entry.setValue(value);
+                return oldValue;
+            }
+        }
+
+        if (firstAvailable != -1) {
+            table[firstAvailable] = new MapEntry<>(key, value);
+            deleted[firstAvailable] = false;
+            size++;
+        }
+
+        return null;
     }
 
     /**
@@ -139,7 +202,14 @@ public class HashTable<K, V> implements Map<K, V> {
      * mapping for key
      */
     public V remove(K key) {
-
+        int index = findIndex(key);
+        if (index == -1) {
+            return null;
+        }
+        V oldValue = entryAt(index).getValue();
+        deleted[index] = true;
+        size--;
+        return oldValue;
     }
 
     /**
@@ -154,9 +224,8 @@ public class HashTable<K, V> implements Map<K, V> {
     }
 
     /**
-     * Ensures that the capacity of the HashTable is a prime number
-     * that is greater than the maximum load factor, if the current
-     * load factor is exceeding 0.5.
+     * Ensures that the capacity of the HashTable is a prime number that is greater
+     * than the maximum load factor, if the current load factor is exceeding 0.5.
      *
      * @return The new prime number that is the new capacity of the HashTable
      */
@@ -164,12 +233,12 @@ public class HashTable<K, V> implements Map<K, V> {
         if ((double) size / table.length > maxLoadFactor) {
             int newCapacity = nextPrime(2 * table.length);
 
-            MapEntry<K, V>[] oldTable = table;
+            MapEntry<K, V>[] oldTable = (MapEntry<K, V>[]) table;
             table = new MapEntry[newCapacity];
             size = 0;
 
-            for(MapEntry<K, V> entry : oldTable){
-                if(entry != null){
+            for (MapEntry<K, V> entry : oldTable) {
+                if (entry != null) {
                     put(entry.getKey(), entry.getValue());
                 }
             }
@@ -209,28 +278,18 @@ public class HashTable<K, V> implements Map<K, V> {
     }
 
     /**
-     * Casts the item at the given index of the backing array to a MapEntry.
-     *
-     * @param index - the index of the item to retrieve
-     * @return the MapEntry at the given index, or null if the cell is empty
-     */
-    @SuppressWarnings("unchecked")
-    private MapEntry<K, V> entryAt(int index) {
-        return (MapEntry<K, V>) table[index];
-    }
-
-    /**
      * Finds the index of the active entry with given key, using quadratic probing.
      *
      * @param key - the key to search for
-     * @return the index of the entry containing key, or -1 if the key is not in the table
+     * @return the index of the entry containing key, or -1 if the key is not in the
+     * table
      */
     private int findIndex(K key) {
         // starting index, floorMod keeps it non-negative
         int h = Math.floorMod(key.hashCode(), table.length);
 
         // stop after checking table.length cells (scanned full array)
-        for (int i = 0; i < table.length; i++){
+        for (int i = 0; i < table.length; i++) {
             int index = (h + i * i) % table.length; // probe H + i^2, wrapping around the array
             MapEntry<K, V> entry = entryAt(index);
 
@@ -245,5 +304,20 @@ public class HashTable<K, V> implements Map<K, V> {
             }
         }
         return -1;
+    }
+
+    /**
+     * HashFunction that turns any object into an integer value.
+     * This is used to locate the index at which the item should
+     * be inserted into the HashTable.
+     *
+     * @param key The key of the object to turn into an integer value.
+     * @return index at which the item should be inserted into the HashTable
+     */
+    private int hashFunction(K key) {
+        if (key == null) {
+            return 0;
+        }
+        return Math.floorMod(key.hashCode(), table.length);
     }
 }
